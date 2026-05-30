@@ -8,4 +8,7 @@ admin.initializeApp({
   }),
 });
 
-module.exports = admin;
+// Firestore database instance
+const db = admin.firestore();
+
+module.exports = db;
