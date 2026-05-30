@@ -65,6 +65,7 @@ const getAllEmergencies = async (req, res) => {
   try {
     const snapshot = await db
       .collection("emergencies")
+      .orderBy("createdAt", "desc")
       .get();
 
     const emergencies = [];

@@ -7,10 +7,16 @@ const {
 
 const router = express.Router();
 
-// Update status
+/**
+ * UPDATE EMERGENCY STATUS
+ * PUT /status/update
+ */
 router.put("/update", updateEmergencyStatus);
 
-// Get status
+/**
+ * GET SINGLE EMERGENCY STATUS
+ * GET /status/:emergencyId
+ */
 router.get("/:emergencyId", getEmergencyStatus);
 
 module.exports = router;
