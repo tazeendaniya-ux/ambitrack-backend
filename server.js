@@ -4,7 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const app = require("./app");
 
-// Firebase init
+// Firebase init (if used)
 require("./config/firebase");
 
 const PORT = process.env.PORT || 5000;
@@ -15,15 +15,15 @@ const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 
 // ------------------------------
-// ⚡ SOCKET.IO SETUP (FIXED FOR PROD)
+// ⚡ SOCKET.IO SETUP
 // ------------------------------
 const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://ambitrack-backend.onrender.com"
-      // 👉 add your frontend URL here later if deployed
+      "https://ambitrack-backend.onrender.com" // backend itself
+      // add frontend URL later (VERY IMPORTANT in production)
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
@@ -38,22 +38,34 @@ let ambulanceLocations = {};
 io.on("connection", (socket) => {
   console.log("⚡ Client connected:", socket.id);
 
-  // 🚑 DRIVER LIVE LOCATION
+  // ===============================
+  // 🚑 DRIVER LOCATION (FIXED)
+  // ===============================
   socket.on("driver-location", (data) => {
-    if (!data || !data.driverId) return;
+    console.log("📍 Driver update received:", data);
 
-    ambulanceLocations[data.driverId] = {
+    if (!data?.driverId) return;
+
+    const update = {
+      driverId: data.driverId,
       lat: data.lat,
       lng: data.lng,
       updatedAt: Date.now(),
     };
 
-    // 📡 Broadcast to all clients
-    io.emit("ambulance-update", ambulanceLocations);
+    // store latest location
+    ambulanceLocations[data.driverId] = update;
+
+    // broadcast single driver update (IMPORTANT FIX)
+    io.emit("ambulance-update", update);
   });
 
-  // 📊 STATUS UPDATES
+  // ===============================
+  // 📊 STATUS UPDATE
+  // ===============================
   socket.on("status-update", (data) => {
+    console.log("📊 Status update:", data);
+
     io.emit("status-broadcast", {
       emergencyId: data.emergencyId,
       status: data.status,
@@ -61,14 +73,16 @@ io.on("connection", (socket) => {
     });
   });
 
+  // ===============================
   // ❌ DISCONNECT
+  // ===============================
   socket.on("disconnect", () => {
     console.log("❌ Client disconnected:", socket.id);
   });
 });
 
 // ------------------------------
-// 🧹 CLEANUP OLD LOCATIONS
+// 🧹 CLEANUP OLD DRIVER LOCATIONS
 // ------------------------------
 setInterval(() => {
   const now = Date.now();
@@ -81,7 +95,7 @@ setInterval(() => {
 }, 30000);
 
 // ------------------------------
-// 🚀 START SERVER (IMPORTANT FIX)
+// 🚀 START SERVER (IMPORTANT FOR RENDER)
 // ------------------------------
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
