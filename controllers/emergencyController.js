@@ -28,27 +28,40 @@ const createEmergencyRequest = async (req, res) => {
     }
 
     // ================= PRIORITY LOGIC =================
+
+    const normalizedType = emergencyType
+      .trim()
+      .toLowerCase();
+
     let priority = "Low";
 
     if (
-      emergencyType === "Cardiac Arrest" ||
-      emergencyType === "Breathing Problem"
+      normalizedType === "cardiac arrest" ||
+      normalizedType === "breathing problem"
     ) {
       priority = "Critical";
     } else if (
-      emergencyType === "Major Accident"
+      normalizedType === "major accident"
     ) {
       priority = "High";
     } else if (
-      emergencyType === "Injury"
+      normalizedType === "injury"
     ) {
       priority = "Medium";
+    } else if (
+      normalizedType === "fever"
+    ) {
+      priority = "Low";
     }
 
-    // DEBUG LOGS
     console.log(
       "Emergency Type Received:",
       emergencyType
+    );
+
+    console.log(
+      "Normalized Type:",
+      normalizedType
     );
 
     console.log(
@@ -56,7 +69,8 @@ const createEmergencyRequest = async (req, res) => {
       priority
     );
 
-    // Emergency object
+    // ================= EMERGENCY OBJECT =================
+
     const emergencyData = {
       patientName,
       phone,
@@ -68,7 +82,8 @@ const createEmergencyRequest = async (req, res) => {
       createdAt: new Date(),
     };
 
-    // Save to Firestore
+    // ================= SAVE TO FIRESTORE =================
+
     const emergencyRef = await db
       .collection("emergencies")
       .add(emergencyData);
@@ -80,7 +95,7 @@ const createEmergencyRequest = async (req, res) => {
       priority,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Create Emergency Error:", error);
 
     res.status(500).json({
       success: false,
@@ -108,17 +123,12 @@ const getAllEmergencies = async (req, res) => {
       });
     });
 
-    console.log(
-      "Total Emergencies:",
-      emergencies.length
-    );
-
     res.status(200).json({
       success: true,
       emergencies,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Get Emergencies Error:", error);
 
     res.status(500).json({
       success: false,
