@@ -5,6 +5,8 @@ const db = require("../config/firebase");
  */
 const createEmergencyRequest = async (req, res) => {
   try {
+    console.log("🚑 NEW PRIORITY VERSION RUNNING");
+
     const {
       patientName,
       phone,
@@ -48,10 +50,6 @@ const createEmergencyRequest = async (req, res) => {
       normalizedType === "injury"
     ) {
       priority = "Medium";
-    } else if (
-      normalizedType === "fever"
-    ) {
-      priority = "Low";
     }
 
     console.log(
@@ -69,8 +67,6 @@ const createEmergencyRequest = async (req, res) => {
       priority
     );
 
-    // ================= EMERGENCY OBJECT =================
-
     const emergencyData = {
       patientName,
       phone,
@@ -82,7 +78,10 @@ const createEmergencyRequest = async (req, res) => {
       createdAt: new Date(),
     };
 
-    // ================= SAVE TO FIRESTORE =================
+    console.log(
+      "Emergency Object Being Saved:",
+      emergencyData
+    );
 
     const emergencyRef = await db
       .collection("emergencies")
@@ -95,7 +94,10 @@ const createEmergencyRequest = async (req, res) => {
       priority,
     });
   } catch (error) {
-    console.error("Create Emergency Error:", error);
+    console.error(
+      "Create Emergency Error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -123,12 +125,19 @@ const getAllEmergencies = async (req, res) => {
       });
     });
 
+    console.log(
+      `📋 Returning ${emergencies.length} emergencies`
+    );
+
     res.status(200).json({
       success: true,
       emergencies,
     });
   } catch (error) {
-    console.error("Get Emergencies Error:", error);
+    console.error(
+      "Get Emergencies Error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
