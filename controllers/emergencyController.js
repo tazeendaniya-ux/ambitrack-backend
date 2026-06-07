@@ -27,6 +27,24 @@ const createEmergencyRequest = async (req, res) => {
       });
     }
 
+    // ================= PRIORITY LOGIC =================
+    let priority = "Low";
+
+    if (
+      emergencyType === "Cardiac Arrest" ||
+      emergencyType === "Breathing Problem"
+    ) {
+      priority = "Critical";
+    } else if (
+      emergencyType === "Major Accident"
+    ) {
+      priority = "High";
+    } else if (
+      emergencyType === "Injury"
+    ) {
+      priority = "Medium";
+    }
+
     // Emergency object
     const emergencyData = {
       patientName,
@@ -34,6 +52,7 @@ const createEmergencyRequest = async (req, res) => {
       latitude,
       longitude,
       emergencyType,
+      priority,
       status: "pending",
       createdAt: new Date(),
     };
@@ -47,6 +66,7 @@ const createEmergencyRequest = async (req, res) => {
       success: true,
       message: "Emergency request created",
       emergencyId: emergencyRef.id,
+      priority,
     });
   } catch (error) {
     console.error(error);
