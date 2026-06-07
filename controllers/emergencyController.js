@@ -45,6 +45,17 @@ const createEmergencyRequest = async (req, res) => {
       priority = "Medium";
     }
 
+    // DEBUG LOGS
+    console.log(
+      "Emergency Type Received:",
+      emergencyType
+    );
+
+    console.log(
+      "Priority Assigned:",
+      priority
+    );
+
     // Emergency object
     const emergencyData = {
       patientName,
@@ -96,6 +107,11 @@ const getAllEmergencies = async (req, res) => {
         ...doc.data(),
       });
     });
+
+    console.log(
+      "Total Emergencies:",
+      emergencies.length
+    );
 
     res.status(200).json({
       success: true,
