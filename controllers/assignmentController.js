@@ -1,8 +1,53 @@
+const https = require("https");
+const querystring = require("querystring");
 const db = require("../config/firebase");
 
 const {
   findNearestAmbulance,
 } = require("../services/nearestAmbulanceService");
+
+const geocodeAddress = (address) => {
+  return new Promise((resolve, reject) => {
+    const query = querystring.escape(address);
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`;
+
+    https
+      .get(
+        url,
+        {
+          headers: {
+            "User-Agent": "AmbiTrack/1.0",
+            Accept: "application/json",
+          },
+        },
+        (res) => {
+          let data = "";
+
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+
+          res.on("end", () => {
+            try {
+              const results = JSON.parse(data);
+              if (!Array.isArray(results) || !results.length) {
+                return resolve(null);
+              }
+
+              const { lat, lon } = results[0];
+              resolve({
+                lat: Number(lat),
+                lon: Number(lon),
+              });
+            } catch (error) {
+              reject(error);
+            }
+          });
+        }
+      )
+      .on("error", reject);
+  });
+};
 
 /**
  * ASSIGN NEAREST AMBULANCE
@@ -25,6 +70,45 @@ const assignNearestAmbulance = async (req, res) => {
     }
 
     const emergencyData = emergencyDoc.data();
+
+    let patientLat = emergencyData.latitude;
+    let patientLon = emergencyData.longitude;
+
+    if (
+      emergencyData.locationType === "manual" &&
+      emergencyData.manualLocation
+    ) {
+      const geocoded = await geocodeAddress(
+        emergencyData.manualLocation
+      );
+
+      if (!geocoded) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Unable to resolve manual pickup address. Please verify the entered location.",
+        });
+      }
+
+      patientLat = geocoded.lat;
+      patientLon = geocoded.lon;
+
+      await db
+        .collection("emergencies")
+        .doc(emergencyId)
+        .update({
+          latitude: patientLat,
+          longitude: patientLon,
+        });
+    }
+
+    if (patientLat == null || patientLon == null) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Emergency location coordinates are missing. Cannot assign an ambulance.",
+      });
+    }
 
     // Get available ambulances
     const snapshot = await db
@@ -51,8 +135,8 @@ const assignNearestAmbulance = async (req, res) => {
     // Find nearest ambulance
     const nearestAmbulance =
       findNearestAmbulance(
-        emergencyData.latitude,
-        emergencyData.longitude,
+        patientLat,
+        patientLon,
         ambulances
       );
 

@@ -13,23 +13,42 @@ const createEmergencyRequest = async (req, res) => {
       latitude,
       longitude,
       emergencyType,
+      locationType = "current",
+      manualLocation,
     } = req.body;
 
-    // Validation
     if (
       !patientName ||
       !phone ||
-      !latitude ||
-      !longitude ||
-      !emergencyType
+      !emergencyType ||
+      !locationType
     ) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message:
+          "Patient name, phone, emergency type, and location option are required.",
       });
     }
 
-    // ================= PRIORITY LOGIC =================
+    if (
+      locationType === "current" &&
+      (latitude == null || longitude == null)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Current location not found.",
+      });
+    }
+
+    if (
+      locationType === "manual" &&
+      (!manualLocation || !manualLocation.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Manual location address is required.",
+      });
+    }
 
     const normalizedType = emergencyType
       .trim()
@@ -52,36 +71,26 @@ const createEmergencyRequest = async (req, res) => {
       priority = "Medium";
     }
 
-    console.log(
-      "Emergency Type Received:",
-      emergencyType
-    );
-
-    console.log(
-      "Normalized Type:",
-      normalizedType
-    );
-
-    console.log(
-      "Priority Assigned:",
-      priority
-    );
-
     const emergencyData = {
       patientName,
       phone,
-      latitude,
-      longitude,
       emergencyType,
       priority,
+      locationType,
       status: "pending",
       createdAt: new Date(),
     };
 
-    console.log(
-      "Emergency Object Being Saved:",
-      emergencyData
-    );
+    if (locationType === "current") {
+      emergencyData.latitude = Number(latitude);
+      emergencyData.longitude = Number(longitude);
+    }
+
+    if (locationType === "manual") {
+      emergencyData.manualLocation = manualLocation.trim();
+      emergencyData.latitude = null;
+      emergencyData.longitude = null;
+    }
 
     const emergencyRef = await db
       .collection("emergencies")
